@@ -42,58 +42,76 @@
 						responseObj.message = message;
 
 						errorCallback(responseObj);
-
 					}
 				});
 			} else {
-				return null;
+				alert('Something went wrong..');
 			}
 		};
 
 		this.saveData = function(cities, successCallback, errorCallback) {
-
 			if (cities.length != 0) {
 				showPreloader();
 
 				var json = JSON.stringify({'data': cities});
 
-				storageService.insertJSONDocument(dbName, colName, json, {
-					success: function(object){
-						var storageObj = JSON.parse(object);
-						var response = storageObj.app42.response.storage;
-						objectId = response.jsonDoc._id.$oid;
+				if (localStorage.getItem('storageObjId') ) {
+					var objId = localStorage.getItem('storageObjId');
 
-						console.log("dbName is " + response.dbName);
-						console.log("objectId is " + objectId);
+					this.updateData(objId, json, successCallback);
 
-						responseObj.message = 'All cities have been saved successfully.';
-						successCallback(responseObj);
+					hidePreloader();
 
-						// Save objectId in local storage
-						if(typeof(Storage) !== "undefined") {
-							localStorage.setItem('storageObjId', objectId);
-						} else {
-							alert('Sorry! No Web Storage support..');
+				} else {
+					storageService.insertJSONDocument(dbName, colName, json, {
+						success: function(object){
+							var storageObj = JSON.parse(object);
+							var response = storageObj.app42.response.storage;
+							objectId = response.jsonDoc._id.$oid;
+
+							console.log("dbName is " + response.dbName);
+							console.log("objectId is " + objectId);
+
+							responseObj.message = 'All cities have been saved successfully.';
+							successCallback(responseObj);
+
+							// Save objectId and cities array into the local storage
+							if(typeof(Storage) !== "undefined") {
+								localStorage.setItem('storageObjId', objectId);
+							} else {
+								alert('Sorry! No Web Storage support..');
+							}
+
+							hidePreloader();
+						},
+						error: function(error) {
+							hidePreloader();
+
+							var errorObj = JSON.parse(error);
+							var message = errorObj.app42Fault.details;
+
+							responseObj.message = message;
+							errorCallback(responseObj);
 						}
-
-						hidePreloader();
-					},
-					error: function(error) {
-						hidePreloader();
-
-						var errorObj = JSON.parse(error);
-						var message = errorObj.app42Fault.details;
-
-						responseObj.message = message;
-						errorCallback(responseObj);
-					}
-				});
-
+					});
+				}
 			} else {
-				//responseObj.message = 'Choose some cities first!';
-				//errorCallback(responseObj);
 				alert('Choose some cities first!');
 			}
+
+		};
+
+		this.updateData = function(objId, newJson, successCallback) {
+			storageService.updateDocumentByDocId(dbName, colName, objId, newJson, {
+
+				success:function(object){
+					responseObj.message = 'All cities have been updated successfully.';
+					successCallback(responseObj);
+				},
+				error:function(error){
+					console.log(error);
+				}
+			})
 		}
 	});
 

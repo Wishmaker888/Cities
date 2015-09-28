@@ -4,17 +4,25 @@
 
 	var app = angular.module('citiesApp', ['ui.bootstrap', 'CityModule']);
 
-	app.controller('CitiesController', ['$scope', 'CloudService',
-		function($scope, CloudService){
+	app.controller('CitiesController', ['$scope', '$http', 'CloudService',
+		function($scope, $http, CloudService){
 			$scope.message = {
 				show: false,
 				result: ''
 			};
 
-			$scope.citiesArray = ['Kiev', 'Zaporizhzhya', 'Donetsk', 'Nikopol',
-			'Lviv', 'Chernigov', 'Zelenodolsk', 'Dniepropetrovsk', 'Lugansk',
-			'Yalta', 'New York', 'Boston', 'San Francisco', 'Moscow', 'Rio'];
+			// Used for a typeahead within input in index.html
+			$scope.citiesArray = [];
 
+			$http.get('/angular-tweet/js/cities.json')
+				.then( function(response) {
+					$scope.citiesArray = response.data.citiesJson;
+
+				}, function(response) {
+					console.log('Error', response);
+				});
+
+			// Will be stored into cloud
 			$scope.cities = [];
 
 			$scope.onSelect = function ($item) {
@@ -23,7 +31,7 @@
 			};
 
 			// Getting cities from local storage (get from App42 by ID) if we have keep
-			// them earlier.
+			// it earlier.
 			if (typeof(Storage) !== "undefined" && localStorage.getItem('storageObjId')) {
 
 				// Calling service with a callbacks
@@ -33,28 +41,23 @@
 					});
 
 				}, function (responseObj) {
-					$scope.$apply(function() {
-						$scope.message.show = true;
-						$scope.message.result = responseObj.message;
-					})
+					showResult(responseObj);
 				});
 			}
 
 			// Function for calling service to save all choosed cities in App42
 			$scope.saveInCloud = function() {
-				CloudService.saveData($scope.cities, function(responseObj) {
-					$scope.$apply(function() {
-						$scope.message.show = true;
-						$scope.message.result = responseObj.message;
-					})
-				}, function(responseObj) {
-					$scope.$apply(function() {
-						$scope.message.show = true;
-						$scope.message.result = responseObj.message;
-					})
-				})
+				var cities = $scope.cities;
 
-			}
+				CloudService.saveData(cities, showResult, showResult);
+			};
+
+			var showResult = function (responseObj) {
+				$scope.$apply(function() {
+					$scope.message.show = true;
+					$scope.message.result = responseObj.message;
+				})
+			};
 		}
 	]);
 })();
