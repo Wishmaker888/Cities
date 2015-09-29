@@ -20,7 +20,8 @@
 
 				}, function(response) {
 					console.log('Error', response);
-				});
+				}
+			);
 
 			// Will be stored into cloud
 			$scope.cities = [];
